@@ -1,0 +1,11 @@
+{
+  "name": "Stock Analysis",
+  "installedAt": 1778656755897,
+  "source": "marketplace",
+  "iconSource": "stock-analysis",
+  "version": "6.2.1",
+  "skillId": "skill_2053083961308913664",
+  "skillName": "stock-analysis",
+  "description_zh": "股票与加密货币分析（8维评分、组合管理、趋势扫描、传闻探测）",
+  "description_en": "Stock & crypto analysis with 8-dim scoring, portfolio, trend & rumor scanning"
+}

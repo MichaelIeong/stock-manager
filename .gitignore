@@ -1,0 +1,10 @@
+# WorkBuddy agent internal memory / runtime (not project content)
+.workbuddy/
+
+# macOS system files
+.DS_Store
+
+# Python cache / build artifacts
+__pycache__/
+*.pyc
+
