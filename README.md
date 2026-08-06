@@ -1,12 +1,12 @@
 # stock-manager
 
-AI 輔助的個人投資組合分析框架——用 AI 助手追蹤美股、港股、A 股的持倉盈虧、缺口回補進度與預期報酬。
+AI 輔助的個人投資組合分析框架，透過 AI 助手追蹤美股、港股、A 股的持倉盈虧、缺口回補進度與預期報酬。
 
-> ⚠️ 本專案**不含任何個人資料**。所有持倉、觀察清單、缺口、計劃都需由你自行填入，再交畀 AI 助手分析（見下方「填入你的資料」）。
+> ⚠️ 本專案**不含任何個人資料**。所有持倉、觀察清單、缺口、計劃都需由你自行填入，再交給 AI 助手分析（見下方「填入你的資料」）。
 
 ---
 
-## 第一步：Clone 這個項目並配好 GitHub SSH Key
+## 一、初始化：Clone 並設定 GitHub SSH Key
 
 ### 1. Clone 專案
 
@@ -15,7 +15,7 @@ git clone git@github.com:MichaelIeong/stock-manager.git
 cd stock-manager
 ```
 
-如果出現 `Permission denied (publickey)` 或 `Could not read from remote repository`，代表你電腦還沒設好 GitHub 的 SSH Key，跟住下面步驟設定。
+若出現 `Permission denied (publickey)` 或 `Could not read from remote repository`，代表你的電腦尚未設定 GitHub 的 SSH Key，請依照下列步驟設定。
 
 ### 2. 檢查是否已有 SSH Key
 
@@ -23,14 +23,14 @@ cd stock-manager
 ls ~/.ssh/id_ed25519.pub
 ```
 
-- 有輸出 → 跳到第 4 步直接把公鑰加到 GitHub。
-- 沒有 → 繼續第 3 步產生一對新 Key。
+- 有輸出 → 直接跳到第 4 步，將公鑰加入 GitHub。
+- 沒有輸出 → 繼續第 3 步，產生一組新的 Key。
 
-### 3. 產生 SSH Key（如未有）
+### 3. 產生 SSH Key（若尚未擁有）
 
 ```bash
 ssh-keygen -t ed25519 -C "你的email@example.com"
-# 一路按 Enter 用預設值即可（不需設密碼；要密碼保護也可自行設定）
+# 一路按 Enter 使用預設值即可（可不設密碼，亦可自行設定密碼保護）
 ```
 
 ### 4. 複製公鑰內容
@@ -42,46 +42,78 @@ cat ~/.ssh/id_ed25519.pub | pbcopy     # 自動複製到剪貼板
 cat ~/.ssh/id_ed25519.pub
 ```
 
-### 5. 把公鑰加到 GitHub
+### 5. 將公鑰加入 GitHub
 
 1. 登入 GitHub → 右上角頭像 → **Settings**
 2. 左側 **SSH and GPG keys** → **New SSH key**
-3. Title 隨便填（例如 `My MacBook`），Key type 選 **Authentication Key**
-4. 把剛才複製的內容貼到 Key 欄 → **Add SSH key**
+3. Title 可任意填寫（例如 `My MacBook`），Key type 選擇 **Authentication Key**
+4. 將剛才複製的內容貼到 Key 欄 → **Add SSH key**
 
 ### 6. 測試連線
 
 ```bash
 ssh -T git@github.com
-# 看到 "Hi MichaelIeong! You've successfully authenticated..." 即成功
+# 看到 "Hi 你的帳號! You've successfully authenticated..." 即表示成功
 ```
 
 ---
 
-## 用 AI 助手使用這個專案
+## 二、建立你自己的倉庫並推送
 
-本專案設計為「AI 工作區」。你唔使自己執行腳本——用支援 `AGENTS.md` 的 AI 工具（如 WorkBuddy / CodeBuddy）打開本資料夾，AI 會自動讀取 `AGENTS.md` 嘅運作規則（報價來源、計算方式、風險檢查清單），直接同佢講你想做咩就得：
+本專案預設的遠端指向原作者的倉庫，你應該把它指向**你自己的 GitHub 倉庫**，才能保存你的設定與分析紀錄。
 
-| 你想做咩 | 對 AI 講 |
+### 方式 A：在 GitHub 新建倉庫（推薦）
+
+1. 登入 GitHub，點擊右上角 **＋** → **New repository**
+2. 填寫 Repository name（例如 `my-stocks`）
+3. **不要**勾選「Add a README file」、「Add .gitignore」、「Choose a license」——因為本專案已經包含這些檔案
+4. 點擊 **Create repository**，複製該新倉庫的 SSH 網址（格式為 `git@github.com:你的帳號/你的倉庫.git`）
+5. 在本機將遠端改成你自己的倉庫：
+
+```bash
+git remote set-url origin git@github.com:你的帳號/你的倉庫.git
+```
+
+6. 推送：
+
+```bash
+git push -u origin main
+```
+
+### 方式 B：Fork 後推送
+
+1. 在本專案頁面點擊 **Fork**，將其複製到你的帳號下
+2. 將你 fork 後的倉庫 clone 下來（網址為 `git@github.com:你的帳號/stock-manager.git`）
+3. 正常進行後續的 `git add` / `git commit` / `git push` 即可
+
+---
+
+## 三、基本用法：交給 AI 助手
+
+本專案設計為「AI 工作區」，所有實際的分析與計算都由 AI 助手完成，你不需要自己執行腳本。
+
+請使用支援 `AGENTS.md` 的 AI 工具（例如 WorkBuddy、CodeBuddy）開啟本資料夾。AI 會自動讀取 `AGENTS.md` 中的運作規則（報價來源、計算方式、風險檢查清單），你只需告訴它想做什麼：
+
+| 你想做的事 | 對 AI 說 |
 |---|---|
-| 跑完整分析 | 「分析我的持倉」／「跑一遍」 |
-| 單一標的深研 | 「分析 NVDA」／「比較 MSFT vs GOOGL」 |
-| 查匯率 | 「匯率多少」 |
-| 查個股數據 | 「騰訊 PE 多少」 |
-| 掃當天新聞 / 風險 | 「今日有咩要留意」 |
+| 執行完整分析 | 「分析我的持倉」／「跑一遍」 |
+| 研究單一標的 | 「分析 NVDA」／「比較 MSFT 與 GOOGL」 |
+| 查詢匯率 | 「匯率多少」 |
+| 查詢個股數據 | 「騰訊的 PE 是多少」 |
+| 掃描當日新聞與風險 | 「今天有什麼需要注意的」 |
 
-AI 會自動幫你：拉 CNBC 即時報價存檔、算全組合 P&L、掃當天新聞、檢查集中度／單一標的虧損／備兌 Call 到期等風險，並給出分析提示（**唔會落單**）。
+AI 會自動為你：拉取 CNBC 即時報價並存檔、計算完整組合損益、掃描當日新聞、檢查集中度／單一標的虧損／備兌 Call 到期等風險，並給出分析提示（**不會下單**）。
 
 `skills/` 資料夾內亦提供可單獨載入 AI 對話的技能：
 - **stock-analysis** — 個股 / 加密貨幣 8 維評分、組合管理、熱門掃描、傳聞探測
 - **us-stock-analysis** — 美股深度分析（基本面 / 技術面 / 估值 / 對比）
-- **fx-rates** — 實時匯率查詢（免 API key）
+- **fx-rates** — 即時匯率查詢（免 API key）
 
 ---
 
-## 填入你的資料（交畀 AI 前先做）
+## 四、填入你的資料
 
-AI 分析需要你嘅持倉資料。編輯 `scripts/quotes.py` 頂部常數：
+AI 分析需要你的持倉資料。你可以自行編輯 `scripts/quotes.py` 頂部的常數：
 
 ```python
 US_POSITIONS = {
@@ -93,23 +125,22 @@ HK_POSITIONS = {
 CN_POSITIONS = {
     "159781.SZ": {"shares": 5000, "cost_cny": 1.05},
 }
-SYMBOL_NAMES = {            # A 股 / 港股建議加中文名
+SYMBOL_NAMES = {            # A 股 / 港股建議加上中文名稱
     "700.HK": "騰訊控股",
 }
 CASH_HKD = 0.0
 ```
 
-- 美股成本欄 `cost_usd`、港股 `cost_hkd`、A 股 `cost_cny`。
-- 有缺口要回補嘅話，喺 `scripts/deficit.py` 填 `DEFICITS`。
-- 填好之後直接同 AI 講「分析我的持倉」，餘下嘅報價拉取同計算 AI 會搞掂。
-- 想自己執行腳本亦可：`python3 scripts/quotes.py`、`scripts/deficit.py`、`scripts/recovery.py`、`scripts/expected_return.py`、`scripts/cost.py`。
+- 美股成本欄為 `cost_usd`、港股為 `cost_hkd`、A 股為 `cost_cny`。
+- 若有需要回補的缺口，請在 `scripts/deficit.py` 填寫 `DEFICITS`。
+- 你也可以直接請 AI 助手協助你填入這些資料，填寫完成後對它說「分析我的持倉」即可。
 
 ---
 
-## 注意事項
+## 五、注意事項
 
 - **絕不執行任何交易**：本框架只做分析與提示，不下單、不撤單、不改單。
-- **數據來源**：報價優先 CNBC 開放 API；匯率用 er-api（均免登入、免 key）。
-- **漲跌顯示約定**：沿用「綠漲紅跌」慣例（綠色 = 上漲 +，紅色 = 下跌 −）。
-- **隱私**：`DATA/`、`memory/`、持倉紀錄等含個資檔案請自行加入 `.gitignore`，勿推上公開倉庫（本框架已預設不追蹤呢啲檔）。
-- **可重現性**：所有金額計算都走腳本，唔能手算，確保精度一致、可審計。
+- **資料來源**：報價優先使用 CNBC 開放 API；匯率使用 er-api（均免登入、免 key）。
+- **漲跌顯示慣例**：沿用「綠漲紅跌」慣例（綠色代表上漲 ＋，紅色代表下跌 −）。
+- **隱私**：`DATA/`、`memory/`、持倉紀錄等含個人資料的檔案請自行加入 `.gitignore`，勿推送到公開倉庫（本框架已預設不追蹤這些檔）。
+- **可重現性**：所有金額計算皆由腳本執行，不能手算，以確保精度一致、可審計。
