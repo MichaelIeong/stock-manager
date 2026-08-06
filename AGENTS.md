@@ -128,6 +128,23 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 - ❌ **絕對不寫**：現價、市值、持倉盈虧、今日盈虧。
 - 動態數值在每次完整分析時用 skill **實時拉取計算**，並存檔至 `DATA/`，結果僅存在當次分析報告中，不回填到 `positions.md`。
 
+### 持倉更新方式（用戶截圖，AI 填寫）
+
+本專案為 AI 運作工作區，**持倉一律由用戶提供券商 App / 帳單截圖，再由 AI 讀圖後寫入**，用戶無須手動編輯腳本。流程：
+
+1. 用戶在對話中貼上持倉截圖（含標的代號、股數、成本價；多市場請分開截圖），並說明「幫我更新持倉」。
+2. AI 讀取圖中標的，轉寫為 `scripts/quotes.py` 的對應常數：
+   - 美股 → `US_POSITIONS`（欄位 `shares` / `cost_usd`）
+   - 港股 → `HK_POSITIONS`（欄位 `shares` / `cost_hkd`）
+   - A 股 → `CN_POSITIONS`（欄位 `shares` / `cost_cny`）
+   - `SYMBOL_NAMES` 補齊 A 股 / 港股中文名稱（如 `"700.HK": "騰訊控股"`）
+   - 備兌 Call 結構（履約價 / 到期日）一併記入。
+3. 同步更新 `positions.md`（僅記標的／數量／成本價／結構，不寫現價盈虧）。
+4. 缺口回補：用戶貼缺口紀錄截圖 → AI 寫入 `scripts/deficit.py` 的 `DEFICITS` 清單。
+5. 改動後即對用戶確認所寫入的標的、股數、成本價，再執行分析。
+
+> 用戶亦可手動修改 `positions.md` / `watchlist.md` / `plan.md`；AI 在每次分析前應先讀取這些檔案再動作。
+
 ## 每次分析時的自動檢查清單
 
 當用戶指示「分析我的清單」或「跑一遍」時，AI 必須完成以下步驟：
