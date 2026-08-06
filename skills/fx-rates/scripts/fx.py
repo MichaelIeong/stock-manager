@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""实时汇率查询 — 从 open.er-api.com 拉取，免 API key。
+"""實時汇率查询 — 从 open.er-api.com 拉取，免 API key。
 
 用法：
-    python3 skills/fx-rates/scripts/fx.py              # 默认输出 USD/CNY, USD/HKD, HKD/CNY
-    python3 skills/fx-rates/scripts/fx.py EUR JPY       # 查任意货币对 (base=EUR, quote=JPY)
-    python3 skills/fx-rates/scripts/fx.py all            # 输出全部主要货币
+    python3 skills/fx-rates/scripts/fx.py              # 預設輸出 USD/CNY, USD/HKD, HKD/CNY
+    python3 skills/fx-rates/scripts/fx.py EUR JPY       # 查任意貨幣對 (base=EUR, quote=JPY)
+    python3 skills/fx-rates/scripts/fx.py all            # 輸出全部主要貨幣
 """
 
 import json
@@ -14,14 +14,14 @@ import urllib.request
 
 API_URL = "https://open.er-api.com/v6/latest/USD"
 
-# 默认输出的货币对
+# 預設輸出的貨幣對
 DEFAULT_PAIRS = [
     ("USD", "CNY"),
     ("USD", "HKD"),
     ("HKD", "CNY"),
 ]
 
-# all 模式输出的主要货币
+# all 模式輸出的主要貨幣
 MAJOR_CURRENCIES = ["USD", "CNY", "HKD", "EUR", "JPY", "GBP", "KRW", "TWD", "SGD", "AUD"]
 
 

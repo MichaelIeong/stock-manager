@@ -6,6 +6,6 @@
   "version": "6.2.1",
   "skillId": "skill_2053083961308913664",
   "skillName": "stock-analysis",
-  "description_zh": "股票与加密货币分析（8维评分、组合管理、趋势扫描、传闻探测）",
+  "description_zh": "股票與加密貨幣分析（8維評分、組合管理、趨勢掃描、传聞探测）",
   "description_en": "Stock & crypto analysis with 8-dim scoring, portfolio, trend & rumor scanning"
 }

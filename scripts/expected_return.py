@@ -2,7 +2,7 @@
 """組合預期年化報酬模型（自下而上，逐檔估值）。
 
 ⚠️ 方法論：
-    唔用「感覺」或者「歷史平均」拍個數出嚟。每檔股用可驗證嘅估值恆等式：
+    不用「感覺」或者「歷史平均」估算出來。每檔股用可驗證的估值恆等式：
 
         1 年總報酬 ≈ (前瞻EPS × 目標PE) / 現價 − 1 + 股息率
                     └─ 盈利增長 ─┘   └ 估值變動 ┘
@@ -10,16 +10,16 @@
     虧損股（如美團）改用 P/S 錨定：
         1 年總報酬 ≈ (每股營收 × (1+營收增長) × 目標P/S) / 現價 − 1
 
-    ETF 冇個股基本面，用指數層面假設（價格報酬 + 股息率）。
+    ETF 沒有個股基本面，用指數層面假設（價格報酬 + 股息率）。
 
 📊 硬數據來源：CNBC restQuote（price / eps / feps / pe / fpe / psales /
     revenuettm / sharesout / dividendyield），逐日存檔於 DATA/。
-🧠 假設部分：目標 PE／增長率／目標 P/S 為**判斷值**，全部集中喺 ASSUMPTIONS，
-    可逐項覆核與修改。每項都寫低理據，唔准無根據拍腦袋。
+🧠 假設部分：目標 PE／增長率／目標 P/S 為**判斷值**，全部集中在 ASSUMPTIONS，
+    可逐項覆核與修改。每項都寫下理據，不准無根據憑空猜測。
 
 用法：
     python3 scripts/expected_return.py
-    python3 scripts/expected_return.py --scenario bull      # 只睇單一情境
+    python3 scripts/expected_return.py --scenario bull      # 只看單一情境
     python3 scripts/expected_return.py --deploy-cash        # 假設現金全數入市
 """
 
@@ -44,8 +44,8 @@ SC_LABEL = {"bear": "熊市", "base": "基準", "bull": "牛市"}
 #            "ps"  → 用 每股營收 × (1+增長) × 目標P/S   （虧損股）
 #            "tp"  → 直接用目標價（錨定券商一致預期，虧損股適用）
 #            "idx" → 直接用指數價格報酬假設            （ETF）
-#   eps_growth:   若 CNBC 有 feps 就唔使填（自動用 feps）；冇先用呢個覆蓋 TTM EPS
-#   eps_override: CNBC 數據過時／口徑不符時，用外部來源覆蓋 EPS 基數（須喺 note 交代出處）
+#   eps_growth:   若 CNBC 有 feps 就不必填（自動用 feps）；沒有先用這個覆蓋 TTM EPS
+#   eps_override: CNBC 數據過時／口徑不符時，用外部來源覆蓋 EPS 基數（須在 note 交代出處）
 ASSUMPTIONS = {}  # 模板預設值（空白）— 請填入你自己的資料
 
 CASH_RETURN = 0.0  # 現金閒置，假設零報酬（保守）
@@ -250,7 +250,7 @@ def main():
               f"　→　HK${weighted[sc]*total:>+11,.0f}")
     print()
 
-    # ── 貢獻度：邊隻真正推動組合 ──
+    # ── 貢獻度：哪隻真正推動組合 ──
     if len(scens) == len(SCENARIOS):
         print("── 貢獻度分析（權重 × 報酬 = 對組合實際貢獻 HK$） ──")
         print(f"  {'標的':<11}{'名稱':<12}{'權重':>7}{'熊市':>11}{'基準':>11}{'牛市':>11}"
@@ -297,7 +297,7 @@ def main():
                 def mt(t):
                     m = (months_to_target(t, total, monthly, ann, cap_months=240)
                          if ann > 0 else None)
-                    return f"{m} 個月" if m else "達唔到"
+                    return f"{m} 個月" if m else "達不到"
                 print(f"  {label:<8}{ann:>+8.1%}{g5:>+13,.0f}"
                       f"{mt(FLOOR_TARGET):>10}{mt(HALF_TARGET):>10}"
                       f"{mt(TOTAL_DEFICIT):>10}")

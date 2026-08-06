@@ -2,11 +2,11 @@
 """缺口帳本 (Deficit Ledger) — 單一事實來源，與 deficits.md 同步。
 
 回補定義：用**投資收益（持倉未實現 + 已實現盈利）**賺返缺口；
-每月加倉嘅本金唔計入回補進度。
+每月加倉的本金不計入回補進度。
 
 ⚠️ 基準線（BASELINE）機制：
-2026 缺口 17,538 已經係**扣埋 2026-08-06 當日全倉盈虧之後嘅淨數**，
-即當日嘅投資收益 +15,415 已經內含喺缺口計算入面。
+2026 缺口 17,538 已經是**扣除 2026-08-06 當日全倉盈虧之後的淨數**，
+即當日的投資收益 +15,415 已經內含在缺口計算裡面。
 所以回補進度由 **2026-08-06 當日 0 起計**：
     回補進度 = 當前投資收益 − BASELINE_INCOME
 賺多過基準線先算回補，跌返落基準線以下則進度為負。
@@ -37,7 +37,7 @@ BASELINE_INCOME = 0.0  # 模板預設值
 
 
 def net_recovery(income: float) -> float:
-    """扣除基準線後嘅淨回補額（消除浮點負零）。"""
+    """扣除基準線後的淨回補額（消除浮點負零）。"""
     return round(income - BASELINE_INCOME, 2) + 0.0
 
 
@@ -61,7 +61,7 @@ def print_progress(income: float) -> None:
     net = net_recovery(income)
     print()
     print("━" * 66)
-    print("📈 回補進度（唔計加倉本金；由基準線起計）")
+    print("📈 回補進度（不計加倉本金；由基準線起計）")
     print("━" * 66)
     print(f"  當前投資收益:  HK${income:>+12,.0f}")
     print(f"  基準線({BASELINE_DATE}): HK${BASELINE_INCOME:>+12,.0f}   ← 已計入 2026 缺口，進度 0")

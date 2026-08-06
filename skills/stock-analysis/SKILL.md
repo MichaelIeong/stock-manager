@@ -1,7 +1,7 @@
 ---
 name: stock-analysis
 description: Analyze stocks and cryptocurrencies using Yahoo Finance data. Supports portfolio management, watchlists with alerts, dividend analysis, 8-dimension stock scoring, viral trend detection (Hot Scanner), and rumor/early signal detection. Use for stock analysis, portfolio tracking, earnings reactions, crypto monitoring, trending stocks, or finding rumors before they hit mainstream.
-description_zh: "股票与加密货币分析（8维评分、组合管理、趋势扫描、传闻探测）"
+description_zh: "股票與加密貨幣分析（8維評分、組合管理、趨勢掃描、传聞探测）"
 description_en: "Stock & crypto analysis with 8-dim scoring, portfolio, trend & rumor scanning"
 version: 6.2.1
 homepage: https://finance.yahoo.com

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""缺口回補難度模型 — 帶每月加倉（月供）嘅複利試算。
+"""缺口回補難度模型 — 帶每月加倉（月供）的複利試算。
 
 ⚠️ 為何要獨立腳本：
-用固定本金算「需要 X% 報酬」係錯嘅——每月加倉 20,000 之後本金逐月變大，
-而且新加嘅錢只賺到剩餘月份嘅回報。本腳本用月度迭代模型：
+用固定本金算「需要 X% 報酬」是錯的——每月加倉 20,000 之後本金逐月變大，
+而且新加的錢只賺到剩餘月份的回報。本腳本用月度迭代模型：
 
     V0 = 起始投資本金
     每月：V = V * (1 + r) + C      （C 於月末投入，保守假設）
-    投資收益 = V_n − (V0 + n × C)   ← 只算賺到嘅，本金唔算回補
+    投資收益 = V_n − (V0 + n × C)   ← 只算賺到的，本金不算回補
 
 兩個方向都算：
   1. 逆解：要達成目標收益，需要幾多月報酬率 r（二分法求解）
@@ -16,7 +16,7 @@
 用法：
     python3 scripts/recovery.py                      # 用預設值
     python3 scripts/recovery.py --capital 0 --monthly 0 --months 5
-    python3 scripts/recovery.py --cash 0             # 現金閒置版（唔投入市場）
+    python3 scripts/recovery.py --cash 0             # 現金閒置版（不投入市場）
     python3 scripts/recovery.py --start-of-month     # 月供改為月初投入
 """
 
@@ -100,7 +100,7 @@ def main() -> None:
     ap.add_argument("--months", type=int, default=DEFAULT_MONTHS,
                     help="剩餘月數，預設 5")
     ap.add_argument("--cash", type=float, default=0.0,
-                    help="閒置現金（唔投入市場，從本金扣除）")
+                    help="閒置現金（不投入市場，從本金扣除）")
     ap.add_argument("--start-of-month", action="store_true",
                     help="月供改為月初投入（較樂觀）")
     a = ap.parse_args()
@@ -119,7 +119,7 @@ def main() -> None:
     print(f"  每月加倉:       HK${a.monthly:>12,.0f}  × {a.months} 個月"
           f"（{timing}投入）")
     print(f"  期末累計本金:   HK${invested_end:>12,.0f}")
-    print(f"  時間加權平均在倉本金: HK${avg:>12,.0f}   ← 報酬率嘅實際分母")
+    print(f"  時間加權平均在倉本金: HK${avg:>12,.0f}   ← 報酬率的實際分母")
     print()
 
     print("── 逆解：達成目標所需報酬率 ──")

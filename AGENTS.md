@@ -46,12 +46,12 @@ curl -sS -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
   "https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=<你的代碼，例如 AAPL|MSFT|0700.HK>&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&_=$(date +%s%N)" > "DATA/quotes_$(date +%Y-%m-%d).json"
 ```
 
-> ⚠️ **CNBC CDN 快取陷阱**：短時間內重複請求同一 URL，CNBC 會回傳**別的請求的快取回應**（例如多出 VTV / 510300.SS、缺咗你要拉嘅代碼）。解法：每次 URL 加 `&_=$(date +%s%N)` 破快取；拉完立即用 `python3 -c "import json;d=json.load(open('DATA/quotes_$(date +%Y-%m-%d).json'));print([q['symbol'] for q in d['FormattedQuoteResult']['FormattedQuote']])"` 驗證標的齊全。另：勿在 `DATA/` 放 `quotes_latest.json` 之類非日期命名檔，`scripts/quotes.py` 的 `find_latest_quotes()` 已限定只認 `quotes_YYYY-MM-DD.json`。
+> ⚠️ **CNBC CDN 快取陷阱**：短時間內重複請求同一 URL，CNBC 會回傳**別的請求的快取回應**（例如多出 VTV / 510300.SS、缺了你要拉的代碼）。解法：每次 URL 加 `&_=$(date +%s%N)` 破快取；拉完立即用 `python3 -c "import json;d=json.load(open('DATA/quotes_$(date +%Y-%m-%d).json'));print([q['symbol'] for q in d['FormattedQuoteResult']['FormattedQuote']])"` 驗證標的齊全。另：勿在 `DATA/` 放 `quotes_latest.json` 之類非日期命名檔，`scripts/quotes.py` 的 `find_latest_quotes()` 已限定只認 `quotes_YYYY-MM-DD.json`。
 
 ### 要點
 
 - **多標的**：用 `|`（pipe）串接，如 `AAPL|MSFT|0700.HK`。
-- **市場代碼**：美股直接寫代號（例：`AAPL`）；港股加 `.HK` 後綴（例：`0700.HK`，**唔好加前綴 0**，`scripts/quotes.py` 嘅 `norm_hk()` 會自動去前導零）；A 股加 `.SS`（上海）／`.SZ`（深圳）後綴（例：`159781.SZ`）。
+- **市場代碼**：美股直接寫代號（例：`AAPL`）；港股加 `.HK` 後綴（例：`0700.HK`，**不要加前綴 0**，`scripts/quotes.py` 的 `norm_hk()` 會自動去前導零）；A 股加 `.SS`（上海）／`.SZ`（深圳）後綴（例：`159781.SZ`）。
 - **回傳結構**：`FormattedQuoteResult.FormattedQuote[]`，每檔欄位：
   - `symbol`、`last`（最新價）、`change`、`change_pct`（漲跌%）
   - `previous_day_closing`（昨收）、`currencyCode`（幣種）
@@ -113,7 +113,7 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 - `scripts/quotes.py` 中的持倉成本字典（`US_POSITIONS` / `HK_POSITIONS` / `CN_POSITIONS`）須與 `positions.md` 保持同步；已實現獲利字典 `REALIZED_GAINS` 與 `CALL_PREMIUM_HKD`（備兌 Call 權利金，由用戶提供金額）亦須同步。
 - **缺口數字只改 `scripts/deficit.py`**（`DEFICITS` 清單），`deficits.md` 為人讀鏡像；年終目標（一半基準／硬下限）由腳本自動計算，禁止在其他檔案硬編碼。
 - **回補難度／所需報酬率一律用 `scripts/recovery.py`**：用戶每月加倉 HK$20,000，本金逐月變大，**嚴禁用固定本金 × 百分比手算**。新錢只賺到剩餘月份，須用月度迭代模型；`--capital` 預設值須跟 `quotes.py` 最新組合總值同步。
-- **回補進度用基準線制**：`deficit.py` 的 `BASELINE_INCOME`（2026-08-06 = +15,415）已內含於 2026 缺口，故**淨回補額 = 當前投資收益 − BASELINE_INCOME**，進度由 0 起計，切勿把基準日當時嘅盈利重複當成回補。
+- **回補進度用基準線制**：`deficit.py` 的 `BASELINE_INCOME`（2026-08-06 = +15,415）已內含於 2026 缺口，故**淨回補額 = 當前投資收益 − BASELINE_INCOME**，進度由 0 起計，切勿把基準日當時的盈利重複當成回補。
 - **已實現收益記帳格式**：期權／交易類一律記「毛額 − 交易費 = 淨額」，**淨額**才計入回補進度（例：某 covered Call 權利金 246 − 費 20 = 淨額 226）。
 
 #### 組合盈虧計算規則
@@ -136,7 +136,7 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 2. **當天新聞**：對觀察清單全標的搜尋當天重要新聞與催化事件。
 3. **持倉與計劃檢查**：
    - 單一標的虧損比例是否過大。
-   - 科技／行業集中度（特別係個別持倉嘅主題重疊風險（例如同一產業鏈嘅多檔持倉））。
+   - 科技／行業集中度（特別是個別持倉的主題重疊風險（例如同一產業鏈的多檔持倉））。
    - 備兌 Call 到期日與 cover 狀態。
    - 匯率影響（成本以 HKD 計，但美股為美元資產）。
    - 對照 `plan.md` 資金計劃執行進度與擬加倉標的。
@@ -146,12 +146,12 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 
 - 語言：所有回覆使用**繁體中文**。
 - **漲跌顯示**：**綠漲紅跌（綠色代表上漲、紅色代表下跌）。**
-- **幣種顯示**：各市場以「當地貨幣」為主標，旁邊括號附 HKD 約當現價：
+- **幣種顯示**：各市場以「當地貨幣」為主標，旁哪括號附 HKD 約當現價：
   - 美股 → 以 **USD** 標示（括號附 HKD），例：`AAPL $150.00（≈HK$1,176）`
   - 港股 → 以 **HKD** 標示，例：`0700.HK HK$480.00`
   - A 股 → 以 **CNY** 標示（括號附 HKD），例：`159781.SZ ¥1.10（≈HK$1.28）`
   - 匯率統一由 `scripts/fx-rates/scripts/fx.py` 實時拉取，不寫死。
-  - **標的名稱顯示**：分析報表（對話文字與 `scripts/*.py` 輸出）中，**A 股與港股標的除代碼外必須附中文名稱**，例如 `2800.HK 盈富基金（港股寬基ETF）`、`159781.SZ 科創創業50ETF（A股成長ETF）`。美股代碼較直觀可加可唔加，但建議一併加強一致性（例如 MSFT 微軟、GOOGL 谷歌）。名稱映射集中於 `scripts/quotes.py` 的 `SYMBOL_NAMES` 常數，腳本經 `sym_name()` 自動正規化港股前導零（令 `0700.HK` 與 `700.HK` 都命中）；**新增標的時必須同步更新 `SYMBOL_NAMES`**。
+  - **標的名稱顯示**：分析報表（對話文字與 `scripts/*.py` 輸出）中，**A 股與港股標的除代碼外必須附中文名稱**，例如 `2800.HK 盈富基金（港股寬基ETF）`、`159781.SZ 科創創業50ETF（A股成長ETF）`。美股代碼較直觀可加可不加，但建議一併加強一致性（例如 MSFT 微軟、GOOGL 谷歌）。名稱映射集中於 `scripts/quotes.py` 的 `SYMBOL_NAMES` 常數，腳本經 `sym_name()` 自動正規化港股前導零（令 `0700.HK` 與 `700.HK` 都命中）；**新增標的時必須同步更新 `SYMBOL_NAMES`**。
 - 資產結構：定存倉位約佔總資產 2/3（股票倉約 1/3）。
 - 持有期限：事件型倉位（例如某催化事件前後）可定中短期；核心持倉（如大型科技股）可定中長線——請按你自己的持倉填寫。
 - 風格與資金計劃：用戶明確不需要太保本的配置建議；新增資金偏好簡潔方案（2–3 檔 ETF），詳細配置請見 `plan.md`。
