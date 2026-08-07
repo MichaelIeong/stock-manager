@@ -107,7 +107,10 @@ AI 會自動為你：拉取 CNBC 即時報價並存檔、計算完整組合損�
 `skills/` 資料夾內亦提供可單獨載入 AI 對話的技能：
 - **stock-analysis** — 個股 / 加密貨幣 8 維評分、組合管理、熱門掃描、傳聞探測
 - **us-stock-analysis** — 美股深度分析（基本面 / 技術面 / 估值 / 對比）
+- **westock-data** — 技術面點位專用（K線、MA/MACD/KDJ/RSI/BOLL 等技術指標，免登入免 key）
 - **fx-rates** — 即時匯率查詢（免 API key）
+
+`scripts/live_server.py` 另提供即時報價儀表板（本地網頁、每 30 秒自動刷新），啟動後瀏覽器開啟 `http://localhost:8999` 即可查看組合盈虧。
 
 ---
 

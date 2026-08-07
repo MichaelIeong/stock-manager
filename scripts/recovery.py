@@ -2,7 +2,7 @@
 """缺口回補難度模型 — 帶每月加倉（月供）的複利試算。
 
 ⚠️ 為何要獨立腳本：
-用固定本金算「需要 X% 報酬」是錯的——每月加倉 20,000 之後本金逐月變大，
+用固定本金算「需要 X% 報酬」是錯的——每月加倉之後本金逐月變大，
 而且新加的錢只賺到剩餘月份的回報。本腳本用月度迭代模型：
 
     V0 = 起始投資本金
@@ -11,7 +11,7 @@
 
 兩個方向都算：
   1. 逆解：要達成目標收益，需要幾多月報酬率 r（二分法求解）
-  2. 正推：假設年化報酬 a%，5 個月能賺幾多、幾時掂到目標
+  2. 正推：假設年化報酬 a%，N 個月能賺幾多、幾時掂到目標
 
 用法：
     python3 scripts/recovery.py                      # 用預設值
@@ -94,11 +94,11 @@ def months_to_target(target: float, capital: float, monthly: float,
 def main() -> None:
     ap = argparse.ArgumentParser(description="缺口回補難度模型（帶月供）")
     ap.add_argument("--capital", type=float, default=DEFAULT_CAPITAL,
-                    help="起始投資本金（HKD），預設 279,872")
+                    help="起始投資本金（HKD），預設 0（模板，請自行填寫）")
     ap.add_argument("--monthly", type=float, default=DEFAULT_MONTHLY,
-                    help="每月加倉（HKD），預設 20,000")
+                    help="每月加倉（HKD），預設 0（模板，請自行填寫）")
     ap.add_argument("--months", type=int, default=DEFAULT_MONTHS,
-                    help="剩餘月數，預設 5")
+                    help="剩餘月數，預設 0（模板，請自行填寫）")
     ap.add_argument("--cash", type=float, default=0.0,
                     help="閒置現金（不投入市場，從本金扣除）")
     ap.add_argument("--start-of-month", action="store_true",

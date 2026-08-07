@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>持倉報價儀表板</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f7; --card:#fff; --ink:#1a1e2b; --muted:#8b919e; --line:#edeff3;
+  --up:#16a34a; --down:#e11d48; --brand:#5b6cf0; --brand2:#8b5cf6;
+  --shadow:0 4px 16px rgba(26,30,43,.06);
+  --radius:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Microsoft JhengHei","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);padding:28px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto}
+
+/* ── 頭部 ── */
+.head{background:linear-gradient(125deg,#4f5ef0,#8b5cf6);color:#fff;border-radius:var(--radius);
+  padding:24px 28px;box-shadow:0 6px 24px rgba(79,94,240,.18);margin-bottom:20px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:.2px}
+.head .meta{font-size:12px;opacity:.88;margin-top:8px}
+.head .meta b{font-weight:600}
+
+/* ── 摘要橫條 ── */
+.strip{display:flex;align-items:stretch;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;border:1px solid #f0f1f6;overflow:hidden}
+.strip-item{flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid #f0f1f6}
+.strip-item:last-child{border-right:none}
+.strip-item .lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+.strip-item .val{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.strip-item .sub{font-size:11px;color:var(--muted)}
+.up{color:var(--up)} .down{color:var(--down)}
+
+/* ── 區塊 ── */
+.block{background:var(--card);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px;border:1px solid #f0f1f6}
+.block h2{font-size:16px;font-weight:800;margin-bottom:16px;color:var(--ink);display:flex;align-items:center;gap:9px}
+.block h2::before{content:"";width:3px;height:16px;background:var(--brand);border-radius:3px;flex-shrink:0}
+.block h2.muted::before{background:var(--muted)}
+
+/* ── 表格 ── */
+table{width:100%;border-collapse:collapse}
+th{background:#f8f9fc;font-size:11.5px;font-weight:700;color:var(--muted);padding:10px 8px;text-align:right;border-bottom:2px solid var(--line);letter-spacing:.2px}
+th:first-child{text-align:left}
+td{padding:10px 8px;font-size:13.5px;text-align:right;border-bottom:1px solid #f5f6fa;font-variant-numeric:tabular-nums}
+td:first-child{text-align:left}
+td.code{font-weight:700;font-size:12.5px}
+td.name{font-size:12px;color:var(--muted)}
+tbody tr:hover{background:#fafbff}
+tr.tot{font-weight:800;background:#f8f9fc}
+tr.tot td{border-top:2px solid #e3e6ee;font-size:13.5px}
+
+/* ── 分析清單 ── */
+.tag{display:inline-block;font-size:10.5px;padding:2px 9px;border-radius:6px;font-weight:700;margin-right:5px;vertical-align:middle;white-space:nowrap}
+.tag-up{background:#dcfce7;color:#15803d} .tag-down{background:#fee2e8;color:#be123c} .tag-warn{background:#fef3c7;color:#b45309}
+.block ul,.block ol{padding-left:20px;font-size:13.5px;color:#3a3f4d;line-height:1.7}
+.block li{margin-bottom:6px}
+.block h3{font-size:13.5px;font-weight:800;margin:14px 0 7px;color:var(--ink)}
+.block h3:first-of-type{margin-top:0}
+.sub-note{font-size:12px;color:var(--muted);margin:2px 0 14px;line-height:1.55}
+.note{font-size:11px;color:#b0b4c2;text-align:center;margin-top:16px;padding-bottom:4px}
+
+/* ── 缺口進度 ── */
+.def-top{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.def-stat{flex:1;min-width:160px;background:#f7f8fc;border-radius:10px;padding:13px 15px}
+.def-stat .k{font-size:11.5px;color:var(--muted);font-weight:600}
+.def-stat .v{font-size:21px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.bar-row{margin-bottom:14px}
+.bar-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px}
+.bar-head .name{font-weight:700}
+.bar-head .pct{font-weight:800;font-variant-numeric:tabular-nums}
+.bar-track{height:11px;background:#edeff3;border-radius:20px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--brand),var(--brand2));
+  transition:width .6s cubic-bezier(.22,1,.36,1);position:relative}
+.bar-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shimmer 2.4s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.bar-sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;vertical-align:middle;margin-left:4px}
+.badge.behind{background:#fee2e8;color:#be123c} .badge.ahead{background:#dcfce7;color:#15803d}
+.def-note{font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:11px;margin-top:2px}
+
+/* === 美化增強版 === */
+:root{
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --shadow:0 12px 30px rgba(31,41,55,.08);
+}
+body{
+  background:
+    radial-gradient(circle at top left, rgba(91,108,240,.12), transparent 35%),
+    linear-gradient(180deg,#f8f9fd,#eef2f8);
+}
+.head{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg,#4355ee,#9b5cff 80%);
+}
+.head::after{
+  content:"";
+  position:absolute;
+  width:220px;height:220px;
+  right:-80px;top:-90px;
+  background:rgba(255,255,255,.15);
+  border-radius:50%;
+}
+.block,.strip{
+  backdrop-filter:blur(8px);
+}
+.block{
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.block:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 36px rgba(31,41,55,.12);
+}
+table{
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border-radius:12px;
+}
+thead th{
+  background:linear-gradient(180deg,#f7f8ff,#eef1ff);
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+tbody tr{
+  transition:background .15s ease;
+}
+tbody tr:hover{
+  background:#f8faff;
+}
+td,th{
+  padding:12px 14px!important;
+}
+.tot{
+  background:linear-gradient(90deg,#f0f3ff,#fafbff)!important;
+  font-weight:800;
+}
+
+/* 現價 / 成本上下排列 */
+.price-cost{
+  display:flex;
+  flex-direction:column;
+  line-height:1.35;
+}
+.price-cost .current{
+  font-weight:700;
+}
+.price-cost .cost{
+  font-size:12px;
+  opacity:.7;
+}
+
+@media(max-width:820px){
+  body{padding:14px}
+  .head{padding:20px}
+  .strip{flex-wrap:wrap}
+  .strip-item{flex:1 1 45%;border-right:none;border-bottom:1px solid #eef0f5}
+  .block{padding:16px}
+  table{font-size:12px}
+  td,th{font-size:11.5px;padding:8px 4px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══════════ 頭部 ═══════════ -->
+<div class="head">
+  <h1>持倉報價</h1>
+  <div class="meta">更新時間：<b id="ts"></b> ｜ 匯率 USD/HKD=<b id="fx1"></b> CNY/HKD=<b id="fx2"></b></div>
+</div>
+
+<div class="strip" id="strip"></div>
+
+<table><thead>
+<tr><th>名稱 / 代碼</th><th>股數</th><th>現價 / 成本</th><th>當刻升跌</th><th>占比</th><th>盈虧 (%)</th><th>今日</th></tr>
+</thead><tbody id="body"></tbody></table>
+
+<!-- ═══════════ 點位分析（可選區塊；由 AI 於每次分析後更新） ═══════════ -->
+<!-- ══ POINTS START ══ -->
+<!--
+<div class="block">
+  <h2>點位解讀</h2>
+  <p class="sub-note">此區塊為 AI 每次分析後的技術面解讀摘要（趨勢、支撐/阻力、超買超賣、金叉死叉）。</p>
+</div>
+-->
+<!-- ══ POINTS END ══ -->
+
+<!-- ═══════════ 今日新聞（可選區塊；由 AI 更新） ═══════════ -->
+<!-- ══ NEWS START ══ -->
+<!--
+<div class="block">
+  <h2>今日重點催化</h2>
+  <p class="sub-note">此區塊為當日重要新聞與催化事件摘要。</p>
+</div>
+-->
+<!-- ══ NEWS END ══ -->
+
+<!-- ═══════════ 倉位調整建議（可選區塊；由 AI 更新） ═══════════ -->
+<!-- ══ SUGGESTIONS START ══ -->
+<!--
+<div class="block">
+  <h2>倉位調整建議</h2>
+  <p class="sub-note">此區塊為 AI 的倉位調整提示（僅分析，非交易建議）。</p>
+</div>
+-->
+<!-- ══ SUGGESTIONS END ══ -->
+
+<!-- ═══════════ 風險提示（可選區塊；由 AI 更新） ═══════════ -->
+<!--
+<div class="block">
+  <h2 class="muted">風險提示</h2>
+  <p class="sub-note">此區塊為集中度、超買、單一標的虧損等風險提示。</p>
+</div>
+-->
+
+<!-- ═══════════ 缺口回補進度 ═══════════ -->
+<div class="block">
+  <h2>缺口回補進度</h2>
+  <div class="def-top">
+    <div class="def-stat"><div class="k">累計總缺口</div><div class="v" id="d-total"></div></div>
+    <div class="def-stat"><div class="k">當前投資收益</div><div class="v up" id="d-income"></div></div>
+    <div class="def-stat"><div class="k">淨回補額（扣基準線）</div><div class="v" id="d-net"></div></div>
+  </div>
+  <div id="bars"></div>
+  <div class="def-note" id="d-note"></div>
+</div>
+
+<div class="note">以上為分析提示，絕非交易建議。持倉變更時通知 AI 更新此 HTML。</div>
+
+</div>
+
+<!-- ═══════════ DATA（AI 更新此區塊即可） ═══════════ -->
+<!-- ══ DATA START ══ -->
+<script>
+// ══ 持倉數據（= positions.md；請填入你自己的持倉） ══
+const DATA = {
+  ts: "請填寫更新時間",
+  fx: {usd_hkd:7.8, cny_hkd:1.15},
+  cash: 0.0,
+  realized: 0.0,
+  pos: [
+    // 格式：{s:"代碼", n:"名稱", q:股數, c:成本, p:現價, pc:昨收, cc:"USD|HKD|CNY", ses:"盤前/盤中/收市"}
+    // {s:"AAPL",  n:"蘋果",     q:10,  c:180.00, p:185.00, pc:183.00, cc:"USD", ses:"盤中"},
+    // {s:"0700.HK", n:"騰訊控股", q:100, c:380.00, p:390.00, pc:385.00, cc:"HKD", ses:"收市"},
+  ],
+  // ══ 缺口帳本（= scripts/deficit.py） ══
+  deficit: {
+    total: 0,          // 累計總缺口
+    baseline: 0,       // 基準線投資收益（已計入缺口，進度 0）
+    floor: 0,          // 年終硬下限目標
+    half: 0,           // 回補一半目標（總缺口/2）
+    monthsLeft: 0,     // 剩餘月數
+    income: 0          // 當前投資收益合計（未實現+已實現）
+  }
+};
+// ══ DATA END ══
+
+(function(){
+  const D=DATA;
+  document.getElementById('ts').textContent=D.ts;
+  document.getElementById('fx1').textContent=D.fx.usd_hkd;
+  document.getElementById('fx2').textContent=D.fx.cny_hkd;
+
+  function HK(v){return'HK$'+Math.round(v).toLocaleString('zh-HK')}
+  function CY(v,c){if(c==='USD')return'$'+v.toFixed(2);if(c==='HKD')return'HK$'+v.toFixed(2);if(c==='CNY')return'¥'+v.toFixed(3);return String(v)}
+  function CC(v,c){const s=v>=0?'+':'-';const a=Math.abs(v);if(c==='USD')return s+'$'+a.toFixed(2);if(c==='HKD')return s+'HK$'+a.toFixed(2);if(c==='CNY')return s+'¥'+a.toFixed(3);return s+a}
+  function P(n){return(n>=0?'+':'')+n.toFixed(2)+'%'}
+  function CLS(n){return n>=0?'up':'down'}
+  function HKD(v,c){return c==='HKD'?v:c==='USD'?v*D.fx.usd_hkd:v*D.fx.cny_hkd}
+
+  // ── 缺口進度 ──
+  const df=D.deficit;
+  const net=Math.round(df.income-df.baseline);
+  const fPct=df.floor?net/df.floor*100:0, hPct=df.half?net/df.half*100:0;
+  const fGap=Math.max(df.floor-net,0), hGap=Math.max(df.half-net,0);
+  const fMonthly=df.monthsLeft?fGap/df.monthsLeft:0, hMonthly=df.monthsLeft?hGap/df.monthsLeft:0;
+  document.getElementById('d-total').textContent=HK(df.total);
+  document.getElementById('d-income').textContent=HK(df.income);
+  const netEl=document.getElementById('d-net');
+  netEl.textContent=(net>=0?'+':'-')+'HK$'+Math.abs(net).toLocaleString('zh-HK');
+  netEl.className='v '+(net>=0?'up':'down');
+
+  function barHTML(name,target,pct,gap){
+    const fill=Math.max(0,Math.min(100,pct));
+    const behind=pct<0;
+    return `<div class="bar-row">
+      <div class="bar-head">
+        <span class="name">${name}<span class="badge ${behind?'behind':'ahead'}">${behind?'落後':'領先'}</span></span>
+        <span class="pct" style="color:${behind?'var(--down)':'var(--up)'}">${pct.toFixed(1)}%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fill}%"></div></div>
+      <div class="bar-sub"><span>目標 ${HK(target)}</span><span>尚差 ${HK(gap)}</span></div>
+    </div>`;
+  }
+  document.getElementById('bars').innerHTML=
+    (df.floor?barHTML('硬下限（年終）',df.floor,fPct,fGap):'')+
+    (df.half?barHTML('回補一半',df.half,hPct,hGap):'');
+  document.getElementById('d-note').innerHTML=
+    `進度基準線 ${df.baseline.toLocaleString()}（已計入缺口）。`+
+    (df.monthsLeft?`剩餘 ${df.monthsLeft} 個月，平均每月需賺 <b>${HK(fMonthly)}</b>（硬下限）/ <b>${HK(hMonthly)}</b>（一半）。`:'');
+
+  // ── 持倉表 ──
+  let tv=0,tc=0,td=0,tp=0,tpv=0;
+  const rowsData=D.pos.map(r=>{
+    const vl=r.q*r.p, cl=r.q*r.c;
+    const pl=vl-cl, dl=(r.p-r.pc)*r.q;
+    const chg=r.p-r.pc;
+    const vh=HKD(vl,r.cc), ch=HKD(cl,r.cc), ph=HKD(pl,r.cc), dh=HKD(dl,r.cc);
+    const pct=cl?pl/cl*100:0;
+    const dpct=r.pc?dl/(r.q*r.pc)*100:0;
+    const chgPct=r.pc?chg/r.pc*100:0;
+    tv+=vh; tc+=ch; td+=dh; tp+=ph; tpv+=HKD(r.q*r.pc,r.cc);
+    return {r,vh,ph,dh,pct,dpct,chg,chgPct};
+  }).sort((a,b)=>{
+    const mo={USD:0,HKD:1,CNY:2};
+    const d=(mo[a.r.cc]??9)-(mo[b.r.cc]??9);
+    return d!==0?d:b.vh-a.vh;
+  });
+  const gpct=tc?tp/tc*100:0;
+  const gdct=tpv?td/tpv*100:0;
+  const grand=tv+D.cash;
+  let rows=rowsData.map(x=>{
+    const wgt=grand?x.vh/grand*100:0;
+    const ses=x.r.ses||'';
+    return `<tr>
+      <td><div class="price-cost"><span class="current">${x.r.n}</span><span class="cost">${x.r.s}</span></div></td>
+      <td>${x.r.q}</td>
+      <td><div class="price-cost"><span class="current">${CY(x.r.p,x.r.cc)}</span><span class="cost">${CY(x.r.c,x.r.cc)}</span></div></td>
+      <td class="${CLS(x.chg)}"><div class="price-cost"><span class="current">${CC(x.chg,x.r.cc)}</span><span class="cost">${P(x.chgPct)}${ses?' ('+ses+')':''}</span></div></td>
+      <td>${wgt.toFixed(1)}%</td>
+      <td class="${CLS(x.ph)}"><div class="price-cost"><span class="current">${HK(x.ph)}</span><span class="cost">${P(x.pct)}</span></div></td>
+      <td class="${CLS(x.dh)}">${HK(x.dh)} (${P(x.dpct)})</td>
+    </tr>`;
+  }).join('');
+  // 現金行 + 合計（含現金）
+  rows+=`<tr style="background:#fafbff"><td><div class="price-cost"><span class="current">現金</span><span class="cost">CASH</span></div></td><td>—</td><td>${HK(D.cash)}</td><td>—</td><td>${grand?(D.cash/grand*100).toFixed(1):'0.0'}%</td><td>—</td><td>—</td></tr>`;
+  rows+=`<tr class="tot"><td colspan="3">總計（含現金）</td><td>—</td><td>100%</td><td class="${CLS(tp)}">${HK(tp)} (${P(gpct)})</td><td class="${CLS(td)}">${HK(td)} (${P(gdct)})</td></tr>`;
+  document.getElementById('body').innerHTML=rows;
+
+  // ── 摘要橫條（一行）──
+  document.getElementById('strip').innerHTML=[
+    ['總計',HK(grand),'含現金',CLS(tp)],
+    ['今日盈虧',HK(td),'日界 04:00',CLS(td)],
+  ].map(c=>`<div class="strip-item"><div class="lbl">${c[0]}</div><div class="val ${c[3]==='up'?'up':c[3]==='down'?'down':''}">${c[1]}</div><div class="sub">${c[2]}</div></div>`).join('');
+})();
+</script>
+</body>
+</html>

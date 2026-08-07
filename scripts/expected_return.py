@@ -7,7 +7,7 @@
         1 年總報酬 ≈ (前瞻EPS × 目標PE) / 現價 − 1 + 股息率
                     └─ 盈利增長 ─┘   └ 估值變動 ┘
 
-    虧損股（如美團）改用 P/S 錨定：
+    虧損股（如虧損的成長股）改用 P/S 錨定：
         1 年總報酬 ≈ (每股營收 × (1+營收增長) × 目標P/S) / 現價 − 1
 
     ETF 沒有個股基本面，用指數層面假設（價格報酬 + 股息率）。
@@ -283,17 +283,18 @@ def main():
         try:
             from recovery import gain, months_to_target
             from deficit import FLOOR_TARGET, HALF_TARGET, TOTAL_DEFICIT
-            monthly = 20000.0
+            monthly = 20000.0  # 模板預設值（每月加倉金額，請依你的計劃調整）
+            months_left = 5  # 模板預設值（剩餘月數，請依你的計劃調整）
             print()
-            print(f"── 映射到缺口回補目標（月供 {monthly:,.0f}，年底剩 5 個月） ──")
-            print(f"  {'情境':<8}{'年化':>9}{'5個月收益':>13}{'達50k':>10}"
-                  f"{'達73.8k':>10}{'達全額':>10}")
+            print(f"── 映射到缺口回補目標（月供 {monthly:,.0f}，年底剩 {months_left} 個月） ──")
+            print(f"  {'情境':<8}{'年化':>9}{'{months_left}個月收益':>13}{'達硬下限':>10}"
+                  f"{'達一半':>10}{'達全額':>10}")
             print("-" * 86)
             for sc, label in [("bear", "熊市"), ("base", "基準"),
                               ("bull", "牛市"), ("ev", "期望值")]:
                 ann = ev if sc == "ev" else weighted[sc]
                 r = (1 + ann) ** (1 / 12) - 1 if ann > -1 else -0.99
-                g5 = gain(total, monthly, 5, r)
+                g5 = gain(total, monthly, months_left, r)
                 def mt(t):
                     m = (months_to_target(t, total, monthly, ann, cap_months=240)
                          if ann > 0 else None)

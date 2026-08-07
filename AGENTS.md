@@ -20,6 +20,7 @@ AI 在此工作區優先使用以下技能與數據源：
 |---|---|---|
 | `stock-analysis` | CNBC 報價 + 新聞掃描 + `scripts/quotes.py` 算 P&L | 「分析我的清單」「跑一遍」 |
 | `us-stock-analysis` | 美股深度分析（基本面/技術面/估值/對比），含盤前盤後 | 「分析 NVDA」「比較 MSFT vs GOOGL」 |
+| `westock-data` | **技術面點位專用**：騰訊自選股公開接口（免登入、免 key、不生成 HTML），涵蓋美股/港股/A股 的 K線、技術指標（MA/MACD/KDJ/RSI/BOLL/BIAS/WR/DMI）、籌碼。CLI：`npx -y westock-data-clawhub@1.0.4 technical <code> --group ma,macd,rsi,boll,kdj`；代碼格式 `usNVDA`/`hk00700`/`sz159781` | 「分析點位」「技術面」「支撐阻力」 |
 | `neodata-financial-search` | 自然語言金融數據（A 股/港股/美股/宏觀） | 「騰訊 PE 多少」 |
 | `fx-rates` | 實時匯率（USD/CNY/HKD），er-api 免 key | 「匯率多少」 |
 | `wb-finance-skill` | 金融場景總入口，協調上述 skill | — |
@@ -107,14 +108,15 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 | `scripts/deficit.py` | 缺口帳本**單一事實來源**（歷年缺口／年終目標／回補進度）；`quotes.py` 由此 import 目標數字 | `python3 scripts/deficit.py [投資收益]` |
 | `scripts/recovery.py` | 回補難度模型（**帶每月加倉**）：月度迭代複利＋二分法逆解所需報酬率、正推各年化情境收益與達標月數 | `python3 scripts/recovery.py [--capital N] [--monthly N] [--months N] [--cash N]` |
 | `scripts/expected_return.py` | 自下而上預期年化報酬模型：逐檔估值（EPS×PE / P/S / 券商目標價），三情境機率加權，貢獻度分析，缺口回補映射；**美股現價同採 `us_live_price()`（未開盤用盤前/Cboe 即時價）** | `python3 scripts/expected_return.py [quotes_path] [--scenario bear|base|bull] [--deploy-cash]` |
+| `scripts/live_server.py` | 即時組合報價儀表板：本地 HTTP 伺服器（端口 8999），CNBC 即時價＋自動刷新（30 秒），逐檔 P&L、今日盈虧、綠漲紅跌 | `python3 scripts/live_server.py [--port PORT]` → `http://localhost:PORT` |
 
 #### 成本計算規則
 - 每次用戶調倉（加倉／減倉），先用 `scripts/cost.py` 算出新的加權均價，再更新 `positions.md`。
 - `scripts/quotes.py` 中的持倉成本字典（`US_POSITIONS` / `HK_POSITIONS` / `CN_POSITIONS`）須與 `positions.md` 保持同步；已實現獲利字典 `REALIZED_GAINS` 與 `CALL_PREMIUM_HKD`（備兌 Call 權利金，由用戶提供金額）亦須同步。
 - **缺口數字只改 `scripts/deficit.py`**（`DEFICITS` 清單），`deficits.md` 為人讀鏡像；年終目標（一半基準／硬下限）由腳本自動計算，禁止在其他檔案硬編碼。
-- **回補難度／所需報酬率一律用 `scripts/recovery.py`**：用戶每月加倉 HK$20,000，本金逐月變大，**嚴禁用固定本金 × 百分比手算**。新錢只賺到剩餘月份，須用月度迭代模型；`--capital` 預設值須跟 `quotes.py` 最新組合總值同步。
-- **回補進度用基準線制**：`deficit.py` 的 `BASELINE_INCOME`（2026-08-06 = +15,415）已內含於 2026 缺口，故**淨回補額 = 當前投資收益 − BASELINE_INCOME**，進度由 0 起計，切勿把基準日當時的盈利重複當成回補。
-- **已實現收益記帳格式**：期權／交易類一律記「毛額 − 交易費 = 淨額」，**淨額**才計入回補進度（例：某 covered Call 權利金 246 − 費 20 = 淨額 226）。
+- **回補難度／所需報酬率一律用 `scripts/recovery.py`**：用戶每月加倉，本金逐月變大，**嚴禁用固定本金 × 百分比手算**。新錢只賺到剩餘月份，須用月度迭代模型；`--capital` 預設值須跟 `quotes.py` 最新組合總值同步。
+- **回補進度用基準線制**：`deficit.py` 的 `BASELINE_INCOME`（基準日投資收益）已內含於缺口，故**淨回補額 = 當前投資收益 − BASELINE_INCOME**，進度由 0 起計，切勿把基準日當時的盈利重複當成回補。
+- **已實現收益記帳格式**：期權／交易類一律記「毛額 − 交易費 = 淨額」，**淨額**才計入回補進度（例：某 covered Call 權利金毛額 1,000 − 費 50 = 淨額 950）。
 
 #### 組合盈虧計算規則
 - 每日分析時，先用 CNBC API 拉取報價存檔至 `DATA/`，再執行 `python3 scripts/quotes.py` 輸出完整 P&L 表格。
@@ -149,29 +151,36 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 
 當用戶指示「分析我的清單」或「跑一遍」時，AI 必須完成以下步驟：
 
-1. **報價拉取與存檔**：優先使用 CNBC 即時報價 API 拉取全倉報價，並自動存檔至 `DATA/quotes_YYYY-MM-DD.json`。
+1. **報價拉取與存檔**：優先使用 CNBC 即時報價 API 拉取全倉報價，並自動存檔至 `DATA/quotes_YYYY-MM-DD.json`；輸出須含**今日盈虧**（日界 UTC+8 04:00，詳見用戶固定偏好）。
 2. **當天新聞**：對觀察清單全標的搜尋當天重要新聞與催化事件。
-3. **持倉與計劃檢查**：
+3. **技術面點位分析（與新聞並重）**：對持倉標的（美股/港股/A股）調用 `westock-data` 拉取技術指標，解讀**趨勢、支撐/阻力、超買超賣、金叉死叉**：
+   - **報告順序**：**先給文字「點位解讀」（分市場敘述趨勢、關鍵支撐/阻力位、超買超賣、金叉死叉），再附技術指標原始表格**。文字解讀須在前，表格在後，勿把解讀埋在最後一欄。
+   - 指令：`npx -y westock-data-clawhub@1.0.4 technical <code> --group ma,macd,rsi,boll,kdj`（批次可用逗號分隔多碼）。
+   - 代碼格式：美股 `usXXXX`、港股 `hkXXXXX`、A股 `sh/szXXXXXX`；ETF 與部分海外個股可能無數據，標註略過。
+   - 解讀重點：價格相對 MA（多空排列）、MACD 柱正負（動能）、KDJ/RSI（超買>70 / 超賣<30）、BOLL 上中下軌（支撐阻力區）。
+   - 與新聞面交叉驗證（例：技術轉弱＋利空新聞＝減持警戒）。
+4. **持倉與計劃檢查**：
    - 單一標的虧損比例是否過大。
    - 科技／行業集中度（特別是個別持倉的主題重疊風險（例如同一產業鏈的多檔持倉））。
    - 備兌 Call 到期日與 cover 狀態。
    - 匯率影響（成本以 HKD 計，但美股為美元資產）。
    - 對照 `plan.md` 資金計劃執行進度與擬加倉標的。
-4. **僅提供分析提示，絕不下單或執行交易**。
+5. **僅提供分析提示，絕不下單或執行交易**。
 
 ## 用戶固定偏好與背景
 
 - 語言：所有回覆使用**繁體中文**。
 - **漲跌顯示**：**綠漲紅跌（綠色代表上漲、紅色代表下跌）。**
-- **幣種顯示**：各市場以「當地貨幣」為主標，旁哪括號附 HKD 約當現價：
+- **全倉報價須含「今日盈虧」**：每次顯示全倉／持倉報價（含 `scripts/quotes.py` 輸出與對話文字摘要）都必須附上**今日盈虧**欄；計算＝（現價 − 昨收）× 股數，日界為 **UTC+8 04:00**（＝美東 16:00 收盤，即美股昨收更新點；港股／A 股昨收為本地收盤）；美股盤後時段「今日盈虧」含盤後價。實作見 `scripts/quotes.py`。
+- **幣種顯示**：各市場以「當地貨幣」為主標，旁括號附 HKD 約當現價：
   - 美股 → 以 **USD** 標示（括號附 HKD），例：`AAPL $150.00（≈HK$1,176）`
   - 港股 → 以 **HKD** 標示，例：`0700.HK HK$480.00`
   - A 股 → 以 **CNY** 標示（括號附 HKD），例：`159781.SZ ¥1.10（≈HK$1.28）`
   - 匯率統一由 `scripts/fx-rates/scripts/fx.py` 實時拉取，不寫死。
   - **標的名稱顯示**：分析報表（對話文字與 `scripts/*.py` 輸出）中，**A 股與港股標的除代碼外必須附中文名稱**，例如 `2800.HK 盈富基金（港股寬基ETF）`、`159781.SZ 科創創業50ETF（A股成長ETF）`。美股代碼較直觀可加可不加，但建議一併加強一致性（例如 MSFT 微軟、GOOGL 谷歌）。名稱映射集中於 `scripts/quotes.py` 的 `SYMBOL_NAMES` 常數，腳本經 `sym_name()` 自動正規化港股前導零（令 `0700.HK` 與 `700.HK` 都命中）；**新增標的時必須同步更新 `SYMBOL_NAMES`**。
-- 資產結構：定存倉位約佔總資產 2/3（股票倉約 1/3）。
+- 資產結構：可自行在 `plan.md` 記錄定存／股票倉位比例（本框架不含預設配置）。
 - 持有期限：事件型倉位（例如某催化事件前後）可定中短期；核心持倉（如大型科技股）可定中長線——請按你自己的持倉填寫。
-- 風格與資金計劃：用戶明確不需要太保本的配置建議；新增資金偏好簡潔方案（2–3 檔 ETF），詳細配置請見 `plan.md`。
+- 風格與資金計劃：配置建議偏好簡潔方案（2–3 檔 ETF），詳細配置請見 `plan.md`。
 
 ## 風險控制與禁止事項
 
@@ -192,11 +201,12 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 
 ## 版本控制（Git）維護慣例
 
-本工作區已初始化為 Git 倉庫，遠端為 `git@github.com:MichaelIeong/my-stocks.git`（分支 `main`），需**持續維護與更新**。
+本工作區已初始化為 Git 倉庫，分支為 `main`，需**持續維護與更新**。請將遠端指向**你自己的倉庫**（教學見 `README.md`）。
 
 ### 倉庫結構約定
 - **納入版本控制**：`AGENTS.md`、`README.md`、`.gitignore`、`positions.md`、`watchlist.md`、`plan.md`、`DATA/`（每日報價快照）、`memory/`（專案日誌）等專案內容。
 - **排除（已在 `.gitignore`）**：`.workbuddy/`（agent 內部記憶與運行檔）、`.DS_Store`。
+- ⚠️ **公開前務必自查**：確認無真實持倉、現金餘額、帳戶號碼、API key 等個人資料被誤加入（本框架所有持倉均為空白模板，填寫你的資料後請自行判斷是否適合公開）。
 
 ### 持續更新流程
 當工作區發生以下變動時，AI 應主動提交並推送，保持遠端倉庫與本地同步：
@@ -206,7 +216,7 @@ curl -sS --insecure -A "Mozilla/5.0" "https://cdn.cboe.com/api/global/delayed_qu
 
 ### 提交與推送指令
 ```bash
-cd "/Users/michael/Documents/股票"
+cd <你的專案路徑>
 git add -A
 git commit -m "YYYY-MM-DD: <變動摘要>"
 git push origin main
@@ -219,4 +229,4 @@ git push origin main
 
 ---
 
-_本文件最後更新：2026-08-06。由 AI 根據用戶指示與對話歷史生成。_
+_本文件最後更新：2026-08-07。由 AI 根據用戶指示與對話歷史生成。_

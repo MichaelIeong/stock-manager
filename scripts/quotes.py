@@ -294,22 +294,24 @@ def main():
     quotes = load_quotes(json_path)
 
     # ── 美股 ──
-    print("━" * 86)
-    print("🇺🇸 美股持倉")
+    # 今日盈虧日界：UTC+8 04:00（＝美東 16:00 收盤，即美股昨收更新點）
+    print("━" * 99)
+    print("🇺🇸 美股持倉（今日盈虧日界：UTC+8 04:00 = 美東收盤）")
     note = section_note(quotes, US_POSITIONS, "US")
     if note:
         print(note)
-    print("━" * 86)
-    print(f"{'代碼':<8} {'市':<3} {'名稱':<10} {'股數':>5} {'成本':>9} {'現價':>9} {'來源':<11} {'市值':>11} {'盈虧':>11} {'%':>7}")
-    print("-" * 86)
+    print("━" * 99)
+    print(f"{'代碼':<8}{'名稱':<9} {'市':<3} {'股數':>4} {'成本':>9} {'現價':>9} {'來源':<10}{'市值':>11} {'持倉盈虧':>12}{'今日盈虧':>12} {'%':>7}")
+    print("-" * 99)
 
     us_total_cost = 0.0
     us_total_value = 0.0
+    us_total_day = 0.0
     for sym, pos in US_POSITIONS.items():
         q = quotes.get(norm_hk(sym), {})
         last = q.get("last")
         if last is None:
-            print(f"{sym:<8} {'':<10} {'':>5} {'無報價'}")
+            print(f"{sym:<8}{'':<9} {'':<3} {'':>4} {'無報價'}")
             continue
         shares = pos["shares"]
         cost = pos["cost_usd"]
@@ -318,16 +320,25 @@ def main():
         cost_total = shares * cost
         pnl = value - cost_total
         pct = pnl_pct(cost_total, value)
+        # 今日盈虧：現價 − 昨收（美股含盤後，因 us_live_price 回傳盤後價）
+        prev = q.get("previous_close")
+        try:
+            day = (price - float(prev)) * shares if prev not in (None, "") else None
+        except (ValueError, TypeError):
+            day = None
         us_total_cost += cost_total
         us_total_value += value
+        if day is not None:
+            us_total_day += day
         name = sym_name(sym)
-        print(f"{sym:<8} {'美':<3} {name:<10} {shares:>5} ${cost:>8.2f} ${price:>8.2f} {src:<11} ${value:>10,.2f} ${pnl:>+10,.2f} {pct:>+6.2f}%")
+        day_s = f"${day:>+11,.2f}" if day is not None else f"{'N/A':>12}"
+        print(f"{sym:<8}{name:<9} {'美':<3} {shares:>4} ${cost:>8.2f} ${price:>8.2f} {src:<10}${value:>10,.2f} ${pnl:>+11,.2f} {day_s} {pct:>+6.2f}%")
 
     if us_total_cost:
         us_pnl = us_total_value - us_total_cost
-        print("-" * 86)
-        print(f"{'美股合計':<8} {'':<10} {'':>5} {'':>9} {'':>9} {'':<11} ${us_total_value:>10,.2f} ${us_pnl:>+10,.2f} {pnl_pct(us_total_cost, us_total_value):>+6.2f}%")
-        print(f"  ≈ HK${us_total_value * usd_hkd:,.0f} (@ {usd_hkd:.2f})")
+        print("-" * 99)
+        print(f"{'美股合計':<8}{'':<9} {'':<3} {'':>4} {'':>9} {'':>9} {'':<10}${us_total_value:>10,.2f} ${us_pnl:>+11,.2f} ${us_total_day:>+11,.2f} {pnl_pct(us_total_cost, us_total_value):>+6.2f}%")
+        print(f"  ≈ HK${us_total_value * usd_hkd:,.0f} (@ {usd_hkd:.2f})；今日盈虧 ≈ HK${us_total_day * usd_hkd:,.0f}")
 
     # ── 美股 24h 參考價細節（主表現價來源 + Cboe bid/ask；盤前/盤後=CNBC，休市=Cboe） ──
     print()
@@ -349,22 +360,23 @@ def main():
     print()
 
     # ── 港股 ──
-    print("━" * 62)
-    print("🇭🇰 港股持倉")
+    print("━" * 75)
+    print("🇭🇰 港股持倉（今日盈虧日界：UTC+8 04:00；港股昨收為本地收盤）")
     note = section_note(quotes, HK_POSITIONS, "HK")
     if note:
         print(note)
-    print("━" * 62)
-    print(f"{'代碼':<10} {'市':<3} {'名稱':<12} {'股數':>5} {'成本':>9} {'現價':>9} {'市值':>11} {'盈虧':>11} {'%':>7}")
-    print("-" * 75)
+    print("━" * 75)
+    print(f"{'代碼':<10} {'名稱':<12} {'市':<3} {'股數':>5} {'成本':>10} {'現價':>10} {'市值':>12} {'持倉盈虧':>12} {'今日盈虧':>12} {'%':>7}")
+    print("-" * 88)
 
     hk_total_cost = 0.0
     hk_total_value = 0.0
+    hk_total_day = 0.0
     for sym, pos in HK_POSITIONS.items():
         q = quotes.get(norm_hk(sym), {})
         last = q.get("last")
         if last is None:
-            print(f"{sym:<10} {'':<12} {'':>5} {'無報價'}")
+            print(f"{sym:<10} {'':<12} {'':<3} {'':>5} {'無報價'}")
             continue
         shares = pos["shares"]
         cost = pos["cost_hkd"]
@@ -372,35 +384,44 @@ def main():
         cost_total = shares * cost
         pnl = value - cost_total
         pct = pnl_pct(cost_total, value)
+        prev = q.get("previous_close")
+        try:
+            day = (last - float(prev)) * shares if prev not in (None, "") else None
+        except (ValueError, TypeError):
+            day = None
         hk_total_cost += cost_total
         hk_total_value += value
+        if day is not None:
+            hk_total_day += day
         name = sym_name(sym)
-        print(f"{sym:<10} {'港':<3} {name:<12} {shares:>5} HK${cost:>8.2f} HK${last:>8.2f} HK${value:>10,.0f} HK${pnl:>+10,.0f} {pct:>+6.2f}%")
+        day_s = f"HK${day:>+10,.0f}" if day is not None else f"{'N/A':>12}"
+        print(f"{sym:<10} {name:<12} {'港':<3} {shares:>5} HK${cost:>8.2f} HK${last:>8.2f} HK${value:>10,.0f} HK${pnl:>+10,.0f} {day_s} {pct:>+6.2f}%")
 
     if hk_total_cost:
         hk_pnl = hk_total_value - hk_total_cost
-        print("-" * 75)
-        print(f"{'港股合計':<10} {'':<12} {'':>5} {'':>9} {'':>9} HK${hk_total_value:>10,.0f} HK${hk_pnl:>+10,.0f} {pnl_pct(hk_total_cost, hk_total_value):>+6.2f}%")
+        print("-" * 88)
+        print(f"{'港股合計':<10} {'':<12} {'':<3} {'':>5} {'':>10} {'':>10} HK${hk_total_value:>10,.0f} HK${hk_pnl:>+10,.0f} HK${hk_total_day:>+10,.0f} {pnl_pct(hk_total_cost, hk_total_value):>+6.2f}%")
 
     print()
 
     # ── A 股 ──
-    print("━" * 62)
-    print("🇨🇳 A 股持倉")
+    print("━" * 75)
+    print("🇨🇳 A 股持倉（今日盈虧日界：UTC+8 04:00；A 股昨收為本地收盤）")
     note = section_note(quotes, CN_POSITIONS, "CN")
     if note:
         print(note)
-    print("━" * 62)
-    print(f"{'代碼':<10} {'市':<3} {'名稱':<12} {'股數':>5} {'成本':>9} {'現價':>9} {'市值':>11} {'盈虧':>11} {'%':>7}")
-    print("-" * 75)
+    print("━" * 75)
+    print(f"{'代碼':<10} {'名稱':<12} {'市':<3} {'股數':>5} {'成本':>9} {'現價':>9} {'市值':>11} {'持倉盈虧':>11} {'今日盈虧':>11} {'%':>7}")
+    print("-" * 88)
 
     cn_total_cost = 0.0
     cn_total_value = 0.0
+    cn_total_day = 0.0
     for sym, pos in CN_POSITIONS.items():
         q = quotes.get(norm_hk(sym), {})
         last = q.get("last")
         if last is None:
-            print(f"{sym:<10} {'':<12} {'':>5} {'無報價'}")
+            print(f"{sym:<10} {'':<12} {'':<3} {'':>5} {'無報價'}")
             continue
         shares = pos["shares"]
         cost = pos["cost_cny"]
@@ -408,15 +429,23 @@ def main():
         cost_total = shares * cost
         pnl = value - cost_total
         pct = pnl_pct(cost_total, value)
+        prev = q.get("previous_close")
+        try:
+            day = (last - float(prev)) * shares if prev not in (None, "") else None
+        except (ValueError, TypeError):
+            day = None
         cn_total_cost += cost_total
         cn_total_value += value
+        if day is not None:
+            cn_total_day += day
         name = sym_name(sym)
-        print(f"{sym:<10} {'A':<3} {name:<12} {shares:>5} ¥{cost:>8.3f} ¥{last:>8.3f} ¥{value:>10,.0f} ¥{pnl:>+10,.0f} {pct:>+6.2f}%")
+        day_s = f"¥{day:>+10,.0f}" if day is not None else f"{'N/A':>11}"
+        print(f"{sym:<10} {name:<12} {'A':<3} {shares:>5} ¥{cost:>8.3f} ¥{last:>8.3f} ¥{value:>10,.0f} ¥{pnl:>+10,.0f} {day_s} {pct:>+6.2f}%")
 
     if cn_total_cost:
         cn_pnl = cn_total_value - cn_total_cost
-        print("-" * 75)
-        print(f"{'A股合計':<10} {'':<12} {'':>5} {'':>9} {'':>9} ¥{cn_total_value:>10,.0f} ¥{cn_pnl:>+10,.0f} {pnl_pct(cn_total_cost, cn_total_value):>+6.2f}%")
+        print("-" * 88)
+        print(f"{'A股合計':<10} {'':<12} {'':<3} {'':>5} {'':>9} {'':>9} ¥{cn_total_value:>10,.0f} ¥{cn_pnl:>+10,.0f} ¥{cn_total_day:>+10,.0f} {pnl_pct(cn_total_cost, cn_total_value):>+6.2f}%")
 
     print()
     # ── 組合總覽 (HKD 約當) ──
@@ -430,17 +459,19 @@ def main():
     grand_pnl = grand - grand_cost
 
     print("━" * 62)
-    print("🏦 組合總覽 (HKD 約當)")
+    print("🏦 組合總覽 (HKD 約當) ｜ 今日盈虧日界 UTC+8 04:00")
     print("━" * 62)
-    print(f"  美股:    HK${us_hkd:>12,.0f}")
-    print(f"  港股:    HK${hk_total_value:>12,.0f}")
-    print(f"  A 股:    HK${cn_hkd:>12,.0f}")
+    print(f"  美股:    HK${us_hkd:>12,.0f}   （今日 HK${us_total_day * usd_hkd:>+11,.0f}）")
+    print(f"  港股:    HK${hk_total_value:>12,.0f}   （今日 HK${hk_total_day:>+11,.0f}）")
+    print(f"  A 股:    HK${cn_hkd:>12,.0f}   （今日 HK${cn_total_day * cny_hkd:>+11,.0f}）")
     print(f"  現金:    HK${CASH_HKD:>12,.2f}")
     print("  ───────────────────────────")
     print(f"  總計:    HK${grand:>12,.0f}")
     if grand_cost:
         print(f"  總成本:  HK${grand_cost:>12,.0f}（匯率：USD/HKD {usd_hkd:.2f}、HKD/CNY {hkd_cny:.4f}）")
         print(f"  未實現盈虧:  HK${grand_pnl:>+12,.0f}（{pnl_pct(grand_cost, grand):+.2f}%，不含已實現）")
+        grand_day = us_total_day * usd_hkd + hk_total_day + cn_total_day * cny_hkd
+        print(f"  今日盈虧:  HK${grand_day:>+12,.0f}（日界 UTC+8 04:00，美股含盤後）")
 
     # ── 已實現獲利（已平倉；與 positions.md 同步） ──
     print()
